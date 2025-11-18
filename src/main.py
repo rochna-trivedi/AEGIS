@@ -16,7 +16,7 @@ from langgraph.graph import StateGraph, END, START
 # --- 1. Environment & Database Setup ---
 # os.environ["GOOGLE_API_KEY"] = "Your-Key-Here" 
 
-DB_FILE = "sakila.db"
+DB_FILE = "data/sakila.db"
 if not os.path.exists(DB_FILE):
     print(f"Error: Database file '{DB_FILE}' not found. Run create_db.py first.")
     exit()

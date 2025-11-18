@@ -4,7 +4,7 @@ import os
 import time 
 
 # Source URLs for Sakila database schema and datas
-DB_FILE = "sakila.db"
+DB_FILE = "data/sakila.db"
 SCHEMA_URL = "https://raw.githubusercontent.com/ivanceras/sakila/master/sqlite-sakila-db/sqlite-sakila-schema.sql"
 # Note: In your original code, this URL pointed to a local file which might cause errors if setup runs. 
 # I have reverted it to the web URL just in case you ever do need to re-download it.
