@@ -1,6 +1,7 @@
 import sqlite3
 import requests
 import os
+import time 
 
 # Source URLs for Sakila database schema and datas
 DB_FILE = "sakila.db"
@@ -68,11 +69,13 @@ def test_database():
             cursor = conn.cursor()
             
             # We'll query the 'actor' table
-            query = "SELECT address, address_id, postal_code FROM address LIMIT 10;"
+            query = "SELECT first_name, last_name FROM actor LIMIT 5;"
             
             print(f"Executing: {query}")
+            startTime = time.time()
             cursor.execute(query)
-            
+            endTine = time.time()
+            print(f"Query executed in {endTine - startTime:.4f} seconds.")
             results = cursor.fetchall()
             
             if results:
