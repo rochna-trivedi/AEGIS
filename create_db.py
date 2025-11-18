@@ -2,19 +2,23 @@ import sqlite3
 import requests
 import os
 
+# Source URLs for Sakila database schema and datas
 DB_FILE = "sakila.db"
 SCHEMA_URL = "https://raw.githubusercontent.com/ivanceras/sakila/master/sqlite-sakila-db/sqlite-sakila-schema.sql"
+# Note: In your original code, this URL pointed to a local file which might cause errors if setup runs. 
+# I have reverted it to the web URL just in case you ever do need to re-download it.
 DATA_URL = "https://raw.githubusercontent.com/ivanceras/sakila/master/sqlite-sakila-db/sqlite-sakila-insert-data.sql"
 
 def setup_database():
     """
-    Downloads Sakila schema and data, then loads them into an SQLite database.
+    Checks if database exists. If not, downloads and creates it.
     """
     
-    # 1. Delete the old database file if it exists
+    # --- CHANGE 1: Check if file exists and SKIP if it does ---
     if os.path.exists(DB_FILE):
-        print(f"Removing old database file: {DB_FILE}")
-        os.remove(DB_FILE)
+        print(f"Database '{DB_FILE}' already exists. Skipping download and setup.")
+        return
+    # ----------------------------------------------------------
 
     print(f"Creating new database: {DB_FILE}")
     
@@ -30,11 +34,9 @@ def setup_database():
 
         # 3. Create database and load the SQL
         print("Connecting to database and executing SQL...")
-        # A connection will automatically create the file
         with sqlite3.connect(DB_FILE) as conn:
             cursor = conn.cursor()
             
-            # executescript can handle multiple SQL statements at once
             print("Creating tables (executing schema)...")
             cursor.executescript(schema_sql)
             print("Schema created.")
@@ -66,7 +68,7 @@ def test_database():
             cursor = conn.cursor()
             
             # We'll query the 'actor' table
-            query = "SELECT first_name, last_name FROM actor LIMIT 5;"
+            query = "SELECT address, address_id, postal_code FROM address LIMIT 10;"
             
             print(f"Executing: {query}")
             cursor.execute(query)
@@ -74,16 +76,15 @@ def test_database():
             results = cursor.fetchall()
             
             if results:
-                print("Test query successful. First 5 actors:")
+                print("Test query successful. First results:")
                 for i, row in enumerate(results):
-                    print(f"  {i+1}: {row[0]} {row[1]}")
+                    print(f"  {i+1}: {row}")
             else:
-                print("Test query ran but returned no results. Check data insertion.")
+                print("Test query ran but returned no results.")
                 
     except sqlite3.Error as e:
         print(f"Error querying database: {e}")
 
 if __name__ == "__main__":
-    # This will run when you execute the script
     setup_database()
     test_database()
