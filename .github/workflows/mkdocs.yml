@@ -32,6 +32,10 @@ jobs:
           python -m pip install --upgrade pip
           # Installs the theme required for the mkdocs.yml configuration
           pip install mkdocs-material
+      - name: Sanitize mkdocs.yml
+        run: |
+          # Remove any potential leading whitespace or BOM characters from the file
+          sed -i 's/^[ \t]*//' mkdocs.yml
       - name: Build MkDocs site
         run: mkdocs build
       - name: Setup Pages
