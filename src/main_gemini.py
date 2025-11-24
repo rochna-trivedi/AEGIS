@@ -118,48 +118,29 @@ workflow.add_edge("tools", "agent")
 
 app = workflow.compile()
 
-# --- Replace the old console loop with FastAPI setup ---
+# --- 6. Run the Chatbot ---
+print("--- 🚀 AEGIS Agent (Manual Node) is Ready ---")
+print("Ask questions about 'sakila.db'. Type 'exit' to quit.")
 
-from fastapi import FastAPI
-from langchain_core.messages import SystemMessage, HumanMessage
+sys_msg = SystemMessage(content="You are a helpful SQL assistant. You have access to a database. Use the tools to answer user questions.")
 
-# Initialize FastAPI application
-app_service = FastAPI(
-    title="AEGIS Interaction Agent API",
-    description="Exposes the LangGraph AEGIS Interaction Agent as a service.",
-)
-
-# Define a simple Pydantic model for the request (optional but recommended)
-# from pydantic import BaseModel
-# class ChatRequest(BaseModel):
-#     question: str
-
-@app_service.post("/chat")
-async def chat_endpoint(question: str):
-    # Use the same system instruction as before
-    sys_msg = SystemMessage(content="You are a helpful SQL assistant. You have access to a database. Use the tools to answer user questions.")
+while True:
+    user_input = input("\n👤 User: ")
+    if user_input.lower() == 'exit':
+        break
+        
+    initial_state = {"messages": [sys_msg, HumanMessage(content=user_input)]}
     
-    # Run the graph with the new user input
-    initial_state = {"messages": [sys_msg, HumanMessage(content=question)]}
-    
-    final_response = "Error: Could not process request."
-    
-    # Run the stream to execute the graph
     try:
-        # NOTE: Using a simple invoke() might be easier than stream() for a basic API endpoint
-        final_state = app.invoke(initial_state)
+        # We use stream to see the steps, but we just print the final answer at the end
+        final_response = None
         
-        # Get the content of the last message (which is the final answer)
-        final_response = final_state["messages"][-1].content
+        for event in app.stream(initial_state):
+            # Capture the latest message from the agent node
+            if "agent" in event:
+                final_response = event["agent"]["messages"][0].content
         
-        return {"response": final_response}
-
+        print(f"\n🤖 AEGIS: {final_response}")
+        
     except Exception as e:
-        print(f"Error executing graph: {e}")
-        return {"response": f"An error occurred: {str(e)}"}
-
-
-if __name__ == "__main__":
-    # Remove the old console loop and replace with uvicorn start command
-    # You will run this from your terminal later: uvicorn src.main:app_service --reload
-    print("Agent initialized. Run 'uvicorn src.main:app_service --reload' to start the server.")
+        print(f"Error: {e}")
