@@ -3,6 +3,10 @@
 ## 💡 Abstract
 
 AEGIS demonstrates how a set of specialized, collaborative agents can autonomously interact with a relational database (the Sakila sample DB) to answer natural language questions, monitor performance, and propose actions.
+ 
+ ![AEGIS demo](images/AEGIS_Demo.gif)
+
+ *Demo: AEGIS interaction example — natural language question → SQL → results.*
 
 The current repository focuses on the **Interaction Agent** (natural language → SQL) and includes designs and scaffolding for monitoring agents such as the Analyst, Performance, Security, and Data Quality agents.
 
