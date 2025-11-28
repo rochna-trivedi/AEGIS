@@ -6,25 +6,17 @@ docs_dir: docs
 
 theme:
   name: material
-  site_name: AEGIS - Autonomous Ecosystem for Governance and Intelligent Security
-  site_author: Rochna Trivedi, Chang Liu
-  site_description: A multi-agent system for autonomous database governance built with LangGraph.
+  palette:
+    scheme: slate
+  features:
+    - navigation.expand
+    - content.code.copy
 
-  docs_dir: docs
-
-  theme:
-    name: material
-    palette:
-      scheme: slate
-    features:
-      - navigation.expand
-      - content.code.copy
-
-  nav:
-    - Home: index.md
-    - Architecture & Vision: architecture.md
-    - Agents:
-        - Interaction: agents/interaction.md
-        - Analyst: agents/analyst.md
-    - Setup & Usage: usage.md
-    - Quick Setup: SETUP_DOC.md
+nav:
+  - Home: index.md
+  - Architecture & Vision: architecture.md
+  - Agents:
+      - Interaction: agents/interaction.md
+      - Analyst: agents/analyst.md
+  - Setup & Usage: usage.md
+  - Quick Setup: SETUP_DOC.md
