@@ -1,5 +1,61 @@
 # Architecture and LangGraph Flow
 
+AEGIS uses a multi-agent design where monitoring and user-facing interaction are implemented as composable LangGraph workflows. The current codebase implements the Interaction Agent and documents the Analyst Agent design.
+
+## 1) Shared State
+
+- The system uses an `AgentState` (a Python `TypedDict`) to carry conversation history and operational fields between nodes. Common fields include:
+  - `messages`: list of `BaseMessage` objects (User, Agent, ToolMessage)
+  - `monitoring_alert` (optional): string describing an issue the Analyst detected
+  - `alert_target` (optional): which agent should act (e.g., `performance`)
+
+## 2) Core Monitoring Loop (Design)
+
+- The Analyst Agent is the central monitoring node in the full design. It periodically samples metrics and runs diagnostic queries. If it detects anomalies it sets `monitoring_alert` and selects an `alert_target` to trigger action.
+
+- Action agents (Performance, Security, Data Quality) receive alerts, run tools, apply fixes (where appropriate), and return control to the Analyst for verification.
+
+## 3) Interaction Agent (Implemented)
+
+- The Interaction Agent is implemented in `src/main.py` as a small LangGraph flow with two primary nodes:
+  - `agent` (`call_model`): sends system + user messages to the LLM (Gemini via `langchain-google-genai`).
+  - `tools` (`tool_node`): executes SQL tools returned by the LLM and packages outputs as `ToolMessage` objects.
+
+- The flow uses `should_continue` to decide whether to route to `tools` or end the interaction.
+
+## 4) Implementation notes
+
+- Packages are installed to a local `python_libs/` directory to avoid system-managed Python changes (PEP 668). Use the project's wrapper scripts to add this folder to `PYTHONPATH`:
+  - `./run.sh` — run arbitrary Python scripts with `python_libs/` on `PYTHONPATH`.
+  - `./run_uvicorn.sh` — run Uvicorn with `python_libs/` on `PYTHONPATH`.
+
+- The LLM is lazily initialized at FastAPI startup (FastAPI lifespan). This requires `GOOGLE_API_KEY` to be exported in the environment before starting the server; it prevents `DefaultCredentialsError` that happens when the LLM is constructed at module import time.
+
+## 5) Tools and DB
+
+- The Interaction Agent uses `SQLDatabaseToolkit` from `langchain_community.agent_toolkits.sql.toolkit` to construct helpful SQL tools, such as `sql_db_query` and `sql_db_list_tables`.
+- The tools operate on `data/sakila.db` (SQLite). Ensure `sakila.db` exists by running `python3 utility/create_db.py`.
+
+## 6) Running the system
+
+- Start the API server with the wrapper (recommended):
+
+```bash
+export GOOGLE_API_KEY="your_key_here"
+./run_uvicorn.sh src.main:app_service --reload
+```
+
+- Test the agent:
+
+```bash
+curl -X POST "http://127.0.0.1:8000/chat?question=What%20tables%20are%20in%20the%20database"
+```
+
+---
+
+For more detailed setup steps, see `docs/SETUP_DOC.md` and `docs/usage.md`.
+# Architecture and LangGraph Flow
+
 The AEGIS system uses a **decentralized, hub-and-spoke model** where the **Analyst Agent** acts as the continuous monitoring hub, feeding data to specialized functional agents. 
 
 [Image of multi-agent system flow diagram]

@@ -21,42 +21,76 @@ It is recommended to set up and activate a virtual environment (`venv`) in your 
 
 ---
 
-## 2. Environment Setup
+# Setup & Usage (AEGIS)
 
-The application uses the `GOOGLE_API_KEY` environment variable to authenticate with the Gemini API. Set this key in your terminal session before running the script.
+This doc covers the repository-specific workflow (no system-wide pip installs). The project uses a local `python_libs/` folder and wrapper scripts to avoid PEP 668 issues on Debian/Ubuntu systems.
 
-    export GOOGLE_API_KEY="AIzaSy...your_secret_key"
+Prerequisites
+- Python 3.10+ (3.12 tested in development)
+- Google Gemini API key for `langchain-google-genai`
 
----
+1) Install dependencies (project-local)
 
-## 3. Database Setup (Sakila Testbed)
+```bash
+cd /home/shubh/projects/AEGIS
+python3 -m pip install --target ./python_libs -r requirements.txt
+```
 
-The AEGIS agents operate on the **Sakila sample database** for realistic testing scenarios. You must run the utility script (`python3 utility/create_db.py`) to download the schema and populate the `data/sakila.db` file before starting the agent. 
+If you need to add a single package:
 
-[Image of Sakila database schema diagram]
+```bash
+python3 -m pip install --target ./python_libs gradio
+```
 
+2) Set environment variables
 
-    # Run this script from the root AEGIS directory
-    python3 utility/create_db.py
+Create a local `.env` from `.env.example` and export the Google API key before starting the server or frontend:
 
----
+```bash
+cp .env.example .env
+# Edit .env to set GOOGLE_API_KEY
+export GOOGLE_API_KEY=$(grep GOOGLE_API_KEY .env | cut -d '=' -f2)
+```
 
-## 4. Running AEGIS
+3) Prepare the database (Sakila sample DB)
 
-The current implementation focuses on the **Interaction Agent**.
+Run the database creation/population script if `data/sakila.db` is missing:
 
-### Start the Agent
+```bash
+python3 utility/create_db.py
+```
 
-Run the primary application script:
+4) Run the API server (recommended)
 
-    python3 src/main.py
+Use the `run_uvicorn.sh` wrapper which ensures the `python_libs/` folder is on `PYTHONPATH`:
 
-### Example Interaction
+```bash
+./run_uvicorn.sh src.main:app_service --reload
+```
 
-You can now interact with your **Interaction Agent** using natural language:
+Key endpoints
+- `GET /health` — Health check
+- `POST /chat?question=...` — Chat endpoint (returns agent response)
+- `GET /docs` — Swagger UI
 
-| Query | Expected Action |
-| :--- | :--- |
-| `How many actors have the first name 'JOE'?` | Agent calls the `sql_db_query` tool to run a SQL query. |
-| `What is the longest film in the database?` | Agent calls the `sql_db_query` tool. |
-| `Tell me a joke.` | Agent responds directly using the LLM without calling a tool. |
+5) Run the Gradio frontend (optional)
+
+The frontend is provided for quick interactive exploration. It calls the running FastAPI chat endpoint.
+
+```bash
+./run.sh src/frontend.py
+# Gradio typically serves at http://127.0.0.1:7860
+```
+
+Notes
+- The repository provides two wrapper scripts:
+  - `run.sh` — generic script wrapper that sets `PYTHONPATH` to `python_libs/` and runs a Python command.
+  - `run_uvicorn.sh` — wrapper that runs Uvicorn with the same `PYTHONPATH` set.
+- LLM initialization is deferred to FastAPI startup (lifespan) so that `GOOGLE_API_KEY` must be exported before server start. This prevents `DefaultCredentialsError` at import time.
+- Avoid committing `python_libs/` (it's added to `.gitignore`). Use `requirements.txt` to reproduce installs.
+
+Troubleshooting
+- If you see `DefaultCredentialsError`, verify `GOOGLE_API_KEY` is set in your environment.
+- If `Address already in use` occurs, make sure no other uvicorn process is running on port 8000 (use `pkill -f uvicorn` or change port with `--port`).
+
+See `docs/SETUP_DOC.md` for a shorter quick-start checklist.
