@@ -13,9 +13,10 @@ theme:
     - content.code.copy
 
 nav:
-  Home: index.md
-  Architecture & Vision: architecture.md
-  Agents:
-    - 01 Interaction Agent: agents/interaction.md
-    - 02 Analyst Agent: agents/analyst.md
-  Setup & Usage: usage.md
+  - Home: index.md
+  - Architecture & Vision: architecture.md
+  - Agents:
+      - Interaction: agents/interaction.md
+      - Analyst: agents/analyst.md
+  - Setup & Usage: usage.md
+  - Quick Setup: SETUP_DOC.md
