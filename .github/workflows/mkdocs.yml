@@ -30,8 +30,20 @@ jobs:
       - name: Install dependencies
         run: |
           python -m pip install --upgrade pip
-          # Installs the theme required for the mkdocs.yml configuration
-          pip install mkdocs-material
+          # Install MkDocs and the Material theme explicitly to ensure mkdocs is present
+          pip install mkdocs mkdocs-material
+      - name: Debug mkdocs config (print file and parsed nav)
+        run: |
+          echo "--- mkdocs.yml ---"
+          sed -n '1,200p' mkdocs.yml || true
+          python - <<'PY'
+import yaml,sys
+cfg = yaml.safe_load(open('mkdocs.yml'))
+print('--- parsed nav type ---')
+print(type(cfg.get('nav')))
+print('--- parsed nav content ---')
+print(cfg.get('nav'))
+PY
       - name: Sanitize mkdocs.yml
         run: |
           # Remove any potential leading whitespace or BOM characters from the file
