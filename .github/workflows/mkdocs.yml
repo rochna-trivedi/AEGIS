@@ -37,13 +37,13 @@ jobs:
           echo "--- mkdocs.yml ---"
           sed -n '1,200p' mkdocs.yml || true
           python - <<'PY'
-import yaml,sys
-cfg = yaml.safe_load(open('mkdocs.yml'))
-print('--- parsed nav type ---')
-print(type(cfg.get('nav')))
-print('--- parsed nav content ---')
-print(cfg.get('nav'))
-PY
+            import yaml, sys
+            cfg = yaml.safe_load(open('mkdocs.yml'))
+            print('--- parsed nav type ---')
+            print(type(cfg.get('nav')))
+            print('--- parsed nav content ---')
+            print(cfg.get('nav'))
+            PY
       - name: Sanitize mkdocs.yml
         run: |
           # Remove any potential leading whitespace or BOM characters from the file
