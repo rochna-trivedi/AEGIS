@@ -23,20 +23,44 @@ if not os.path.exists(DB_FILE):
 
 db = SQLDatabase.from_uri(f"sqlite:///{DB_FILE}")
 
-# --- 2. Define the Tools & LLM ---
+# --- 2. Initialize LLM and Tools (Lazy Loading) ---
+# These will be initialized only when the FastAPI app starts
+llm = None
+toolkit = None
+tools = None
+tools_by_name = None
+llm_with_tools = None
 
-llm = ChatGoogleGenerativeAI(
-    model="gemini-2.5-flash",
-    temperature=0,
-)
-
-toolkit = SQLDatabaseToolkit(db=db, llm=llm)
-tools = toolkit.get_tools()
-
-# Create a dictionary for easy tool lookup (needed for our manual node)
-tools_by_name = {tool.name: tool for tool in tools}
-
-llm_with_tools = llm.bind_tools(tools)
+def initialize_llm():
+    """Initialize LLM and tools. Called at FastAPI startup."""
+    global llm, toolkit, tools, tools_by_name, llm_with_tools
+    
+    if llm is not None:
+        return  # Already initialized
+    
+    print("🚀 Initializing LLM and tools...")
+    
+    # Check if API key is set
+    if not os.environ.get("GOOGLE_API_KEY"):
+        raise RuntimeError(
+            "GOOGLE_API_KEY environment variable not set. "
+            "Please set it before starting the server: export GOOGLE_API_KEY=your_key"
+        )
+    
+    llm = ChatGoogleGenerativeAI(
+        model="gemini-2.5-flash",
+        temperature=0,
+    )
+    
+    toolkit = SQLDatabaseToolkit(db=db, llm=llm)
+    tools = toolkit.get_tools()
+    
+    # Create a dictionary for easy tool lookup (needed for our manual node)
+    tools_by_name = {tool.name: tool for tool in tools}
+    
+    llm_with_tools = llm.bind_tools(tools)
+    
+    print(f"✅ LLM initialized with {len(tools)} tools")
 
 # --- 3. Define the Graph State ---
 
@@ -47,6 +71,8 @@ class AgentState(TypedDict):
 
 def call_model(state: AgentState):
     """The 'Brain' node: sends history to Gemini and gets a response."""
+    if llm_with_tools is None:
+        raise RuntimeError("LLM not initialized. Make sure GOOGLE_API_KEY is set.")
     messages = state["messages"]
     response = llm_with_tools.invoke(messages)
     return {"messages": [response]}
@@ -56,6 +82,9 @@ def tool_node(state: AgentState):
     The Manual 'Tool' node.
     This replaces 'from langgraph.prebuilt import ToolNode'
     """
+    if tools_by_name is None:
+        raise RuntimeError("Tools not initialized. Make sure GOOGLE_API_KEY is set.")
+    
     messages = state["messages"]
     last_message = messages[-1]
     
@@ -98,44 +127,67 @@ def should_continue(state: AgentState):
     # Otherwise, stop
     return END
 
-# --- 5. Build the Graph ---
+# --- 5. Build the Graph (will be initialized at startup) ---
 
-workflow = StateGraph(AgentState)
+def build_graph():
+    """Build the LangGraph workflow. Called after LLM is initialized."""
+    workflow = StateGraph(AgentState)
+    
+    # Add the two nodes
+    workflow.add_node("agent", call_model)
+    workflow.add_node("tools", tool_node) # We use our manual function here
+    
+    # Define the edges
+    workflow.add_edge(START, "agent")
+    
+    workflow.add_conditional_edges(
+        "agent",
+        should_continue,
+    )
+    
+    workflow.add_edge("tools", "agent")
+    
+    return workflow.compile()
 
-# Add the two nodes
-workflow.add_node("agent", call_model)
-workflow.add_node("tools", tool_node) # We use our manual function here
+app = None  # Will be initialized at startup
 
-# Define the edges
-workflow.add_edge(START, "agent")
-
-workflow.add_conditional_edges(
-    "agent",
-    should_continue,
-)
-
-workflow.add_edge("tools", "agent")
-
-app = workflow.compile()
+app = None  # Will be initialized at startup
 
 # --- Replace the old console loop with FastAPI setup ---
 
 from fastapi import FastAPI
-from langchain_core.messages import SystemMessage, HumanMessage
-
-# Initialize FastAPI application
-app_service = FastAPI(
-    title="AEGIS Interaction Agent API",
-    description="Exposes the LangGraph AEGIS Interaction Agent as a service.",
-)
+from contextlib import asynccontextmanager
 
 # Define a simple Pydantic model for the request (optional but recommended)
 # from pydantic import BaseModel
 # class ChatRequest(BaseModel):
 #     question: str
 
+@asynccontextmanager
+async def lifespan(app_service: FastAPI):
+    """Lifespan context for FastAPI startup and shutdown."""
+    # Startup: Initialize LLM and build graph
+    global app
+    initialize_llm()
+    app = build_graph()
+    print("✅ FastAPI app ready!")
+    yield
+    # Shutdown logic here if needed
+    print("🛑 FastAPI app shutting down...")
+
+# Initialize FastAPI application with lifespan
+app_service = FastAPI(
+    title="AEGIS Interaction Agent API",
+    description="Exposes the LangGraph AEGIS Interaction Agent as a service.",
+    lifespan=lifespan,
+)
+
 @app_service.post("/chat")
 async def chat_endpoint(question: str):
+    """Chat endpoint that uses the LangGraph agent to answer questions."""
+    if app is None:
+        return {"response": "Error: Agent not initialized. Check server logs."}
+    
     # Use the same system instruction as before
     sys_msg = SystemMessage(content="You are a helpful SQL assistant. You have access to a database. Use the tools to answer user questions.")
     
@@ -158,6 +210,10 @@ async def chat_endpoint(question: str):
         print(f"Error executing graph: {e}")
         return {"response": f"An error occurred: {str(e)}"}
 
+@app_service.get("/health")
+async def health_check():
+    """Health check endpoint."""
+    return {"status": "ok", "message": "AEGIS Agent API is running"}
 
 if __name__ == "__main__":
     # Remove the old console loop and replace with uvicorn start command

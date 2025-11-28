@@ -1,0 +1,23 @@
+__pycache__/
+*.py[cod]
+*$py.class
+
+# virtual environment
+.venv/
+venv/
+
+# Local python libraries installed with --target
+python_libs/
+
+# Environment files
+.env
+.env.*
+
+# Editor directories and files
+.vscode/
+*.swp
+
+# Distribution / packaging
+dist/
+build/
+*.egg-info/
