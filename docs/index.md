@@ -10,7 +10,7 @@ AEGIS demonstrates how a set of specialized, collaborative agents can autonomous
 
 The current repository focuses on the **Interaction Agent** (natural language → SQL) and includes designs and scaffolding for monitoring agents such as the Analyst, Performance, Security, and Data Quality agents.
 
-### 🧩 Key Agent Components
+## 🧩 Key Agent Components
 
 | Agent | Function | Status |
 | :--- | :--- | :--- |
