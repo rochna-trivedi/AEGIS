@@ -10,7 +10,7 @@ AEGIS demonstrates how a set of specialized, collaborative agents can autonomous
 
 The current repository focuses on the **Interaction Agent** (natural language → SQL) and includes designs and scaffolding for monitoring agents such as the Analyst, Performance, Security, and Data Quality agents.
 
-### Key Agent Components
+### 🧩 Key Agent Components
 
 | Agent | Function | Status |
 | :--- | :--- | :--- |
@@ -38,7 +38,7 @@ Start with [Usage](usage.md) to run the server and frontend locally.
 
 The management of modern database systems is increasingly complex, demanding significant manual effort for optimization, security, and maintenance. **AEGIS** is a novel framework built on a decentralized multi-agent architecture. It distributes core management tasks among a team of specialized, collaborative agents to create a **self-driving, self-securing, and self-repairing database ecosystem.**
 
-### Key Agent Components
+### 🧩 Key Agent Components
 
 | Agent | Function | Status |
 | :--- | :--- | :--- |
